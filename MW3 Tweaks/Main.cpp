@@ -9,7 +9,7 @@ int main(int n, char* args[]) {
 	float desiredFovScale = 1.f;
 	int desiredFPS = 144;
 
-	DWORD pID;
+	DWORD pID = 0;
 	HANDLE hProcess;
 
 	// Offsets
@@ -27,6 +27,7 @@ int main(int n, char* args[]) {
 	int aServerRunning;
 
 	int bInGame = 0;
+	float FOV = 0.f;
 	bool bWritten = false;
 
 	if (n > 1 && n == 4) {
@@ -37,7 +38,12 @@ int main(int n, char* args[]) {
 	}
 
 	// Get a handle to the game
-	pID = GetProcessID("iw5sp.exe");
+	while (!pID) {
+		pID = GetProcessID("iw5sp.exe");
+		std::cout << "Waiting for game...\n";
+		Sleep(1000);
+	}
+
 	hProcess = OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, FALSE, pID);
 	if (!hProcess)
 		return 0;
@@ -55,44 +61,14 @@ int main(int n, char* args[]) {
 		levels, without constantly writing memory to the game.
 	*/
 	while (true) {
-		ReadProcessMemory(hProcess, (LPVOID)(aServerRunning + 0xC), &bInGame, sizeof(bInGame), NULL);
+		ReadProcessMemory(hProcess, (LPVOID)(aFOV + 0xC), &FOV, sizeof(FOV), NULL);
 
-		// If they player is in-game, and the patch hasn't been applied.
-		if (!bWritten && bInGame) {
+		if (FOV <= 65.f) {
 			WriteProcessMemory(hProcess, (LPVOID)(aFOV + 0xC), &desiredFov, sizeof(desiredFov), NULL);
 			WriteProcessMemory(hProcess, (LPVOID)(aFOVScale + 0xC), &desiredFovScale, sizeof(desiredFovScale), NULL);
 			WriteProcessMemory(hProcess, (LPVOID)(aFPS + 0xC), &desiredFPS, sizeof(desiredFPS), NULL);
-			bWritten = true;
 
-			std::cout << "Patch applied.\n";
-		}
-
-		/*
-			If the patch has been written to the game,
-			but the player is loading a new level.
-		*/
-		if (bWritten && !bInGame) {
-			bool bReset = false;
-			float flFOV = 0.f;
-
-			bWritten = false;
-			std::cout << "Reset\n";
-
-			/*
-				Hacky, but works.
-				Continuously check to see if the field of view value is 65 ( default ).
-				If it is, that means the protected variables have been reset,
-				and we're safe to reapply the patch.
-			*/
-
-			while (!bReset) {
-				std::cout << "Reapplying patch...\n";
-				ReadProcessMemory(hProcess, (LPVOID)(aFOV + 0xC), &flFOV, sizeof(flFOV), NULL);
-				if (flFOV == 65.f)
-					bReset = true;
-
-				Sleep(500);
-			}
+			std::cout << "Applied patch!\n";
 		}
 
 		Sleep(100);
