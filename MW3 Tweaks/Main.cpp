@@ -15,19 +15,19 @@ int main(int n, char* args[]) {
 	// Offsets
 	DWORD oFOV = 0x0A76130;
 	DWORD oFOVScale = 0x0A7601C;
+	DWORD oServerRunning = 0x1769F50;
 	//DWORD oMaxFPS = 0x176B540;
 	//DWORD oPaused = 0x1769F34;
-	DWORD oServerRunning = 0x1769F50;
 
 	// Addresses
-	int aFOV;
-	int aFOVScale;
-	//int aFPS;
-	int aServerRunning;
+	DWORD aFOV = 0;
+	DWORD aFOVScale = 0;
+	DWORD aServerRunning = 0;
+	//DWORD aFPS;
 
+	// Values
 	int bInGame = 0;
 	float FOV = 0.f;
-	//bool bWritten = false;
 
 	if (n > 1 && n == 3) {
 		std::cout << "Applying args\n";
@@ -37,28 +37,34 @@ int main(int n, char* args[]) {
 	}
 
 	// Get a handle to the game
-	while (!pID && !hProcess) {
+	while (!hProcess) {
 		pID = GetProcID(L"iw5sp.exe");
 
 		if (pID) {
 			hProcess = OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, FALSE, pID);
-
-			if (hProcess == NULL)
-				std::cout << "Open process error...\n";
-			else if (hProcess)
-				break;
+			if (!hProcess || hProcess == INVALID_HANDLE_VALUE) {
+				std::cout << "Cannot get handle to game...\n";
+			}
 		}
 
 		std::cout << "Waiting for game...\n";
 		Sleep(5000);
 	}
 
-	// Get the addresses of each offset
-	ReadProcessMemory(hProcess, (LPCVOID)oFOV, &aFOV, sizeof(int), NULL);
-	ReadProcessMemory(hProcess, (LPCVOID)oFOVScale, &aFOVScale, sizeof(int), NULL);
-	//ReadProcessMemory(hProcess, (LPCVOID)oMaxFPS, &aFPS, sizeof(int), NULL);
-	//ReadProcessMemory(hProcess, (LPCVOID)oPaused, &aPaused, sizeof(int), NULL);
-	ReadProcessMemory(hProcess, (LPCVOID)oServerRunning, &aServerRunning, sizeof(int), NULL);
+	std::cout << "Found game...\n";
+	std::cout << "\a";
+
+	/* 
+		Game variables are not initialized until loading into a level.
+	*/
+	while (!aFOV || !aFOVScale || !aServerRunning) {
+		// Get the addresses of each offset
+		ReadProcessMemory(hProcess, (LPCVOID)oFOV, &aFOV, sizeof(int), NULL);
+		ReadProcessMemory(hProcess, (LPCVOID)oFOVScale, &aFOVScale, sizeof(int), NULL);
+		ReadProcessMemory(hProcess, (LPCVOID)oServerRunning, &aServerRunning, sizeof(int), NULL);
+
+		Sleep(100);
+	}
 
 	/*
 		Call of Duty games reset protected variables everytime the player loads a new level.
@@ -66,22 +72,23 @@ int main(int n, char* args[]) {
 		levels, without constantly writing memory to the game.
 	*/
 	while (true) {
-		ReadProcessMemory(hProcess, (LPVOID)(aFOV + 0xC), &FOV, sizeof(FOV), NULL);
+		ReadProcessMemory(hProcess, (LPVOID)(aServerRunning + 0xC), &bInGame, sizeof(bInGame), NULL);
 
-		if (GetAsyncKeyState(VK_DOWN) & 0x1) {
-			ReadProcessMemory(hProcess, (LPVOID)(aServerRunning + 0xC), &bInGame, sizeof(bInGame), NULL);
-			std::cout << "In Game?: " << bInGame << "\n";
+		/* Only apply patches if the player is in-game. Singleplayer, co-op, etc. */
+		if (bInGame) {
+			ReadProcessMemory(hProcess, (LPVOID)(aFOV + 0xC), &FOV, sizeof(FOV), NULL);
+
+			if (FOV != desiredFov) {
+				WriteProcessMemory(hProcess, (LPVOID)(aFOV + 0xC), &desiredFov, sizeof(desiredFov), NULL);
+				WriteProcessMemory(hProcess, (LPVOID)(aFOVScale + 0xC), &desiredFovScale, sizeof(desiredFovScale), NULL);
+
+				std::cout << "Applying patch...\n";
+			}
 		}
-
-		if (FOV < desiredFov) {
-			WriteProcessMemory(hProcess, (LPVOID)(aFOV + 0xC), &desiredFov, sizeof(desiredFov), NULL);
-			WriteProcessMemory(hProcess, (LPVOID)(aFOVScale + 0xC), &desiredFovScale, sizeof(desiredFovScale), NULL);
-
-			std::cout << "Applied patch!\n";
-		}
-
-		Sleep(100);
+		Sleep(500);
 	}
+
+	CloseHandle(hProcess);
 
 	return 0;
 }
