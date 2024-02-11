@@ -2,57 +2,62 @@
 #include <iostream>
 #include <stdlib.h>
 
-#include "Process.h"
+#include "XProc.h"
 
 int main(int n, char* args[]) {
 	float desiredFov = 90.f;
 	float desiredFovScale = 1.f;
-	int desiredFPS = 144;
+	//int desiredFPS = 144;
 
 	DWORD pID = 0;
-	HANDLE hProcess;
+	HANDLE hProcess = nullptr;
 
 	// Offsets
 	DWORD oFOV = 0x0A76130;
 	DWORD oFOVScale = 0x0A7601C;
-	DWORD oMaxFPS = 0x176B540;
-	DWORD oPaused = 0x1769F34;
+	//DWORD oMaxFPS = 0x176B540;
+	//DWORD oPaused = 0x1769F34;
 	DWORD oServerRunning = 0x1769F50;
 
 	// Addresses
 	int aFOV;
 	int aFOVScale;
-	int aFPS;
-	int aPaused;
+	//int aFPS;
 	int aServerRunning;
 
 	int bInGame = 0;
 	float FOV = 0.f;
-	bool bWritten = false;
+	//bool bWritten = false;
 
-	if (n > 1 && n == 4) {
+	if (n > 1 && n == 3) {
 		std::cout << "Applying args\n";
 		desiredFov = atof(args[1]);
 		desiredFovScale = atof(args[2]);
-		desiredFPS = atof(args[3]);
+		//desiredFPS = atof(args[3]);
 	}
 
 	// Get a handle to the game
-	while (!pID) {
-		pID = GetProcessID("iw5sp.exe");
-		std::cout << "Waiting for game...\n";
-		Sleep(1000);
-	}
+	while (!pID && !hProcess) {
+		pID = GetProcID(L"iw5sp.exe");
 
-	hProcess = OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, FALSE, pID);
-	if (!hProcess)
-		return 0;
+		if (pID) {
+			hProcess = OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, FALSE, pID);
+
+			if (hProcess == NULL)
+				std::cout << "Open process error...\n";
+			else if (hProcess)
+				break;
+		}
+
+		std::cout << "Waiting for game...\n";
+		Sleep(5000);
+	}
 
 	// Get the addresses of each offset
 	ReadProcessMemory(hProcess, (LPCVOID)oFOV, &aFOV, sizeof(int), NULL);
 	ReadProcessMemory(hProcess, (LPCVOID)oFOVScale, &aFOVScale, sizeof(int), NULL);
-	ReadProcessMemory(hProcess, (LPCVOID)oMaxFPS, &aFPS, sizeof(int), NULL);
-	ReadProcessMemory(hProcess, (LPCVOID)oPaused, &aPaused, sizeof(int), NULL);
+	//ReadProcessMemory(hProcess, (LPCVOID)oMaxFPS, &aFPS, sizeof(int), NULL);
+	//ReadProcessMemory(hProcess, (LPCVOID)oPaused, &aPaused, sizeof(int), NULL);
 	ReadProcessMemory(hProcess, (LPCVOID)oServerRunning, &aServerRunning, sizeof(int), NULL);
 
 	/*
@@ -63,10 +68,14 @@ int main(int n, char* args[]) {
 	while (true) {
 		ReadProcessMemory(hProcess, (LPVOID)(aFOV + 0xC), &FOV, sizeof(FOV), NULL);
 
-		if (FOV <= 65.f) {
+		if (GetAsyncKeyState(VK_DOWN) & 0x1) {
+			ReadProcessMemory(hProcess, (LPVOID)(aServerRunning + 0xC), &bInGame, sizeof(bInGame), NULL);
+			std::cout << "In Game?: " << bInGame << "\n";
+		}
+
+		if (FOV < desiredFov) {
 			WriteProcessMemory(hProcess, (LPVOID)(aFOV + 0xC), &desiredFov, sizeof(desiredFov), NULL);
 			WriteProcessMemory(hProcess, (LPVOID)(aFOVScale + 0xC), &desiredFovScale, sizeof(desiredFovScale), NULL);
-			WriteProcessMemory(hProcess, (LPVOID)(aFPS + 0xC), &desiredFPS, sizeof(desiredFPS), NULL);
 
 			std::cout << "Applied patch!\n";
 		}
