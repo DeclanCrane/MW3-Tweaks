@@ -13,9 +13,9 @@ int main(int n, char* args[]) {
 	HANDLE hProcess = nullptr;
 
 	// Offsets
-	DWORD oFOV = 0x0A76130;
-	DWORD oFOVScale = 0x0A7601C;
-	DWORD oServerRunning = 0x1769F50;
+	const DWORD oFOV = 0x0A76130;
+	const DWORD oFOVScale = 0x0A7601C;
+	const DWORD oServerRunning = 0x1769F50;
 	//DWORD oMaxFPS = 0x176B540;
 	//DWORD oPaused = 0x1769F34;
 
@@ -30,7 +30,6 @@ int main(int n, char* args[]) {
 	float FOV = 0.f;
 
 	if (n > 1 && n == 3) {
-		std::cout << "Applying args\n";
 		desiredFov = atof(args[1]);
 		desiredFovScale = atof(args[2]);
 		//desiredFPS = atof(args[3]);
