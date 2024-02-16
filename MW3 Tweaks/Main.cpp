@@ -7,23 +7,23 @@
 int main(int n, char* args[]) {
 	float desiredFov = 90.f;
 	float desiredFovScale = 1.f;
-	//int desiredFPS = 144;
+	int desiredFPS = 144;
 
 	DWORD pID = 0;
 	HANDLE hProcess = nullptr;
 
 	// Offsets
-	const DWORD oFOV = 0x0A76130;
-	const DWORD oFOVScale = 0x0A7601C;
-	const DWORD oServerRunning = 0x1769F50;
-	//DWORD oMaxFPS = 0x176B540;
+	constexpr DWORD oFOV = 0x0A76130;
+	constexpr DWORD oFOVScale = 0x0A7601C;
+	constexpr DWORD oServerRunning = 0x1769F50;
+	constexpr DWORD oMaxFPS = 0x176B540;
 	//DWORD oPaused = 0x1769F34;
 
 	// Addresses
 	DWORD aFOV = 0;
 	DWORD aFOVScale = 0;
 	DWORD aServerRunning = 0;
-	//DWORD aFPS;
+	DWORD aMaxFPS = 0;
 
 	// Values
 	int bInGame = 0;
@@ -32,7 +32,7 @@ int main(int n, char* args[]) {
 	if (n > 1 && n == 3) {
 		desiredFov = atof(args[1]);
 		desiredFovScale = atof(args[2]);
-		//desiredFPS = atof(args[3]);
+		desiredFPS = atof(args[3]);
 	}
 
 	// Get a handle to the game
@@ -61,6 +61,7 @@ int main(int n, char* args[]) {
 		ReadProcessMemory(hProcess, (LPCVOID)oFOV, &aFOV, sizeof(int), NULL);
 		ReadProcessMemory(hProcess, (LPCVOID)oFOVScale, &aFOVScale, sizeof(int), NULL);
 		ReadProcessMemory(hProcess, (LPCVOID)oServerRunning, &aServerRunning, sizeof(int), NULL);
+		ReadProcessMemory(hProcess, (LPCVOID)oMaxFPS, &aMaxFPS, sizeof(int), NULL);
 
 		Sleep(100);
 	}
@@ -80,6 +81,7 @@ int main(int n, char* args[]) {
 			if (FOV != desiredFov) {
 				WriteProcessMemory(hProcess, (LPVOID)(aFOV + 0xC), &desiredFov, sizeof(desiredFov), NULL);
 				WriteProcessMemory(hProcess, (LPVOID)(aFOVScale + 0xC), &desiredFovScale, sizeof(desiredFovScale), NULL);
+				WriteProcessMemory(hProcess, (LPVOID)(aMaxFPS + 0xC), &desiredFPS, sizeof(desiredFPS), NULL);
 
 				std::cout << "Applying patch...\n";
 			}
