@@ -1,12 +1,12 @@
 #include <Windows.h>
 #include <iostream>
-#include <stdlib.h>
 #include <map>
 
 #include "XFiles.h"
+#include "XConfig.h"
 #include "XProc.h"
 
-int main(int n, char* args[]) {
+int main() {
 	float desiredFov = 65.f;
 	float desiredFovScale = 1.5;
 	int desiredFPS = 144;
@@ -31,12 +31,6 @@ int main(int n, char* args[]) {
 	int bInGame = 0;
 	float FOV = 0.f;
 
-	if (n > 1 && n == 3) {
-		desiredFov = atof(args[1]);
-		desiredFovScale = atof(args[2]);
-		desiredFPS = atof(args[3]);
-	}
-
 	// Setup config
 	XFile config("tweak_config.txt");
 
@@ -46,52 +40,32 @@ int main(int n, char* args[]) {
 		if (config.Empty()) {
 			std::cout << "config is empty\n";
 			std::cout << "writing intial template\n";
-			config.Write("cg_fov=90\ncom_maxfps=144\nfov_scale=1.0");
+			config.Write("cg_fov=90\ncom_maxfps=144\ncg_fovScale=1.0");
 		}
 	}
 	else {
 		std::cout << "creating config\n";
 		config.Create();
 		std::cout << "writing intial template\n";
-		config.Write("cg_fov=90\ncom_maxfps=144\nfov_scale=1.0");
+		config.Write("cg_fov=90\ncom_maxfps=144\ncg_fovScale=1.0");
 	}
 
 	// Read file
 	std::vector<std::string> lines;
 	config.Read(lines);
 
-
-	//std::vector<std::string> parms;
-	std::map<std::string, std::string> parms;
-	// Get parameters
-	for (int i = 0; i < lines.size(); i++) {
-		if (lines.at(i).find("cg_fov") != std::string::npos) {
-			std::size_t startPos = 0;
-			std::string buff;
-			startPos = lines.at(i).find_first_of("=");
-			buff = lines.at(i).substr(++startPos, lines.at(i).length() - startPos);
-			parms["cg_fov"] = buff;
-		}
-		if (lines.at(i).find("com_maxfps") != std::string::npos) {
-			std::size_t startPos = 0;
-			std::string buff;
-			startPos = lines.at(i).find_first_of("=");
-			buff = lines.at(i).substr(++startPos, lines.at(i).length() - startPos);
-			parms["com_maxfps"] = buff;
-		}
-		if (lines.at(i).find("fov_scale") != std::string::npos) {
-			std::size_t startPos = 0;
-			std::string buff;
-			startPos = lines.at(i).find_first_of("=");
-			buff = lines.at(i).substr(++startPos, lines.at(i).length() - startPos);
-			parms["fov_scale"] = buff;
-		}
+	if (!lines.size()) {
+		std::cout << "Error with config\n";
 	}
 
+	std::map<std::string, std::string> params;
+	// Get parameters
+	ConvertToMap(lines, params);
+
 	// Setup parms
-	desiredFov = atof(parms["cg_fov"].c_str());
-	desiredFovScale = atof(parms["fov_scale"].c_str());
-	desiredFPS = atoi(parms["com_maxfps"].c_str());
+	desiredFov = std::stof(params["cg_fov"]);
+	desiredFovScale = std::stof(params["cg_fovScale"]);
+	desiredFPS = std::stoi(params["com_maxfps"]);
 
 
 	// Get a handle to the game

@@ -128,10 +128,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="XConfig.cpp" />
     <ClCompile Include="XFiles.cpp" />
     <ClCompile Include="XProc.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="XConfig.h" />
     <ClInclude Include="XFiles.h" />
     <ClInclude Include="XProc.h" />
   </ItemGroup>

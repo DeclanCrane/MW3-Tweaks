@@ -24,12 +24,18 @@
     <ClCompile Include="XFiles.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="XConfig.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="XProc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="XFiles.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="XConfig.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
