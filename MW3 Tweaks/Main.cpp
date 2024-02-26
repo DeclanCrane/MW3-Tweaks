@@ -1,6 +1,7 @@
 #include <Windows.h>
 #include <iostream>
 #include <stdlib.h>
+#include <map>
 
 #include "XFiles.h"
 #include "XProc.h"
@@ -60,7 +61,8 @@ int main(int n, char* args[]) {
 	config.Read(lines);
 
 
-	std::vector<std::string> parms;
+	//std::vector<std::string> parms;
+	std::map<std::string, std::string> parms;
 	// Get parameters
 	for (int i = 0; i < lines.size(); i++) {
 		if (lines.at(i).find("cg_fov") != std::string::npos) {
@@ -68,33 +70,28 @@ int main(int n, char* args[]) {
 			std::string buff;
 			startPos = lines.at(i).find_first_of("=");
 			buff = lines.at(i).substr(++startPos, lines.at(i).length() - startPos);
-			parms.push_back(buff);
+			parms["cg_fov"] = buff;
 		}
 		if (lines.at(i).find("com_maxfps") != std::string::npos) {
 			std::size_t startPos = 0;
 			std::string buff;
 			startPos = lines.at(i).find_first_of("=");
 			buff = lines.at(i).substr(++startPos, lines.at(i).length() - startPos);
-			parms.push_back(buff);
+			parms["com_maxfps"] = buff;
 		}
 		if (lines.at(i).find("fov_scale") != std::string::npos) {
 			std::size_t startPos = 0;
 			std::string buff;
 			startPos = lines.at(i).find_first_of("=");
 			buff = lines.at(i).substr(++startPos, lines.at(i).length() - startPos);
-			parms.push_back(buff);
+			parms["fov_scale"] = buff;
 		}
 	}
 
-	// Print parms
-	for (int i = 0; i < parms.size(); i++) {
-		std::cout << parms.at(i) << "\n";
-	}
-
 	// Setup parms
-	desiredFov = atof(parms.at(0).c_str());
-	desiredFovScale = atof(parms.at(2).c_str());
-	desiredFPS = atoi(parms.at(1).c_str());
+	desiredFov = atof(parms["cg_fov"].c_str());
+	desiredFovScale = atof(parms["fov_scale"].c_str());
+	desiredFPS = atoi(parms["com_maxfps"].c_str());
 
 
 	// Get a handle to the game
