@@ -2,11 +2,12 @@
 #include <iostream>
 #include <stdlib.h>
 
+#include "XFiles.h"
 #include "XProc.h"
 
 int main(int n, char* args[]) {
-	float desiredFov = 90.f;
-	float desiredFovScale = 1.f;
+	float desiredFov = 65.f;
+	float desiredFovScale = 1.5;
 	int desiredFPS = 144;
 
 	DWORD pID = 0;
@@ -35,6 +36,67 @@ int main(int n, char* args[]) {
 		desiredFPS = atof(args[3]);
 	}
 
+	// Setup config
+	XFile config("tweak_config.txt");
+
+	if (config.Exists())
+	{
+		std::cout << "Config exists\n";
+		if (config.Empty()) {
+			std::cout << "config is empty\n";
+			std::cout << "writing intial template\n";
+			config.Write("cg_fov=90\ncom_maxfps=144\nfov_scale=1.0");
+		}
+	}
+	else {
+		std::cout << "creating config\n";
+		config.Create();
+		std::cout << "writing intial template\n";
+		config.Write("cg_fov=90\ncom_maxfps=144\nfov_scale=1.0");
+	}
+
+	// Read file
+	std::vector<std::string> lines;
+	config.Read(lines);
+
+
+	std::vector<std::string> parms;
+	// Get parameters
+	for (int i = 0; i < lines.size(); i++) {
+		if (lines.at(i).find("cg_fov") != std::string::npos) {
+			std::size_t startPos = 0;
+			std::string buff;
+			startPos = lines.at(i).find_first_of("=");
+			buff = lines.at(i).substr(++startPos, lines.at(i).length() - startPos);
+			parms.push_back(buff);
+		}
+		if (lines.at(i).find("com_maxfps") != std::string::npos) {
+			std::size_t startPos = 0;
+			std::string buff;
+			startPos = lines.at(i).find_first_of("=");
+			buff = lines.at(i).substr(++startPos, lines.at(i).length() - startPos);
+			parms.push_back(buff);
+		}
+		if (lines.at(i).find("fov_scale") != std::string::npos) {
+			std::size_t startPos = 0;
+			std::string buff;
+			startPos = lines.at(i).find_first_of("=");
+			buff = lines.at(i).substr(++startPos, lines.at(i).length() - startPos);
+			parms.push_back(buff);
+		}
+	}
+
+	// Print parms
+	for (int i = 0; i < parms.size(); i++) {
+		std::cout << parms.at(i) << "\n";
+	}
+
+	// Setup parms
+	desiredFov = atof(parms.at(0).c_str());
+	desiredFovScale = atof(parms.at(2).c_str());
+	desiredFPS = atoi(parms.at(1).c_str());
+
+
 	// Get a handle to the game
 	while (!hProcess) {
 		pID = GetProcID(L"iw5sp.exe");
@@ -44,6 +106,10 @@ int main(int n, char* args[]) {
 			if (!hProcess || hProcess == INVALID_HANDLE_VALUE) {
 				std::cout << "Cannot get handle to game...\n";
 			}
+		}
+
+		if(hProcess) {
+			break;
 		}
 
 		std::cout << "Waiting for game...\n";

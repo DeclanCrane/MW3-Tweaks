@@ -1,0 +1,3 @@
+cg_fov=90
+com_maxfps=144
+fov_scale=1.0

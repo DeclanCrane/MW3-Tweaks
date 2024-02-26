@@ -21,9 +21,15 @@
     <ClCompile Include="XProc.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="XFiles.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="XProc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="XFiles.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

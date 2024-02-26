@@ -1,0 +1,5 @@
+cg_fov - 0x0A76130
+cg_fovScale - 0x0A7601C
+com_maxfps - 0x176B540
+cl_paused - 0x1769F34
+sv_running - 0x1769F50 : Is server running?
