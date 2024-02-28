@@ -133,6 +133,7 @@
     <ClCompile Include="XProc.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CODVar.h" />
     <ClInclude Include="XConfig.h" />
     <ClInclude Include="XFiles.h" />
     <ClInclude Include="XProc.h" />

@@ -5,38 +5,21 @@
 #include "XFiles.h"
 #include "XConfig.h"
 #include "XProc.h"
+#include "CODVar.h"
 
 int main() {
-	float desiredFov = 65.f;
-	float desiredFovScale = 1.5;
-	int desiredFPS = 144;
-
-	DWORD pID = 0;
-	HANDLE hProcess = nullptr;
-
-	// Offsets
-	constexpr DWORD oFOV = 0x0A76130;
-	constexpr DWORD oFOVScale = 0x0A7601C;
-	constexpr DWORD oServerRunning = 0x1769F50;
-	constexpr DWORD oMaxFPS = 0x176B540;
-	//DWORD oPaused = 0x1769F34;
-
-	// Addresses
-	DWORD aFOV = 0;
-	DWORD aFOVScale = 0;
-	DWORD aServerRunning = 0;
-	DWORD aMaxFPS = 0;
-
-	// Values
-	int bInGame = 0;
-	float FOV = 0.f;
+	// Vars
+	CODVar<float> fov = { 0x0A76130, 0, 0.f, 65.f };
+	CODVar<float> fovScale = { 0x0A7601C, 0, 0.f, 1.f };
+	CODVar<int> maxFPS = { 0x176B540, 0, 0, 0 };
+	CODVar<int> serverRunning = { 0x1769F50, 0, 0, 0 };
 
 	// Setup config
 	XFile config("tweak_config.txt");
 
 	if (config.Exists())
 	{
-		std::cout << "Config exists\n";
+		std::cout << "Loading config...\n";
 		if (config.Empty()) {
 			std::cout << "config is empty\n";
 			std::cout << "writing intial template\n";
@@ -44,7 +27,7 @@ int main() {
 		}
 	}
 	else {
-		std::cout << "creating config\n";
+		std::cout << "Creating config...\n";
 		config.Create();
 		std::cout << "writing intial template\n";
 		config.Write("cg_fov=90\ncom_maxfps=144\ncg_fovScale=1.0");
@@ -55,7 +38,7 @@ int main() {
 	config.Read(lines);
 
 	if (!lines.size()) {
-		std::cout << "Error with config\n";
+		std::cout << "Error loading config...\n";
 	}
 
 	std::map<std::string, std::string> params;
@@ -63,42 +46,23 @@ int main() {
 	ConvertToMap(lines, params);
 
 	// Setup parms
-	desiredFov = std::stof(params["cg_fov"]);
-	desiredFovScale = std::stof(params["cg_fovScale"]);
-	desiredFPS = std::stoi(params["com_maxfps"]);
+	fov.desiredValue = std::stof(params["cg_fov"]);
+	fovScale.desiredValue = std::stof(params["cg_fovScale"]);
+	maxFPS.desiredValue = std::stoi(params["com_maxfps"]);
 
-
-	// Get a handle to the game
-	while (!hProcess) {
-		pID = GetProcID(L"iw5sp.exe");
-
-		if (pID) {
-			hProcess = OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, FALSE, pID);
-			if (!hProcess || hProcess == INVALID_HANDLE_VALUE) {
-				std::cout << "Cannot get handle to game...\n";
-			}
-		}
-
-		if(hProcess) {
-			break;
-		}
-
-		std::cout << "Waiting for game...\n";
-		Sleep(5000);
-	}
-
-	std::cout << "Found game...\n";
-	std::cout << "\a";
+	XProcess MW3(L"iw5sp.exe");
+	if (!MW3.WaitForProcess(60.f))
+		std::cout << "Please start Modern Warfare 3 and try again.\n";
 
 	/* 
 		Game variables are not initialized until loading into a level.
 	*/
-	while (!aFOV || !aFOVScale || !aServerRunning) {
+	while (!fov.address || !fovScale.address|| !maxFPS.address) {
 		// Get the addresses of each offset
-		ReadProcessMemory(hProcess, (LPCVOID)oFOV, &aFOV, sizeof(int), NULL);
-		ReadProcessMemory(hProcess, (LPCVOID)oFOVScale, &aFOVScale, sizeof(int), NULL);
-		ReadProcessMemory(hProcess, (LPCVOID)oServerRunning, &aServerRunning, sizeof(int), NULL);
-		ReadProcessMemory(hProcess, (LPCVOID)oMaxFPS, &aMaxFPS, sizeof(int), NULL);
+		MW3.ReadMemory(fov.offset, fov.address);
+		MW3.ReadMemory(fovScale.offset, fovScale.address);
+		MW3.ReadMemory(maxFPS.offset, maxFPS.address);
+		MW3.ReadMemory(serverRunning.offset, serverRunning.address);
 
 		Sleep(100);
 	}
@@ -109,24 +73,21 @@ int main() {
 		levels, without constantly writing memory to the game.
 	*/
 	while (true) {
-		ReadProcessMemory(hProcess, (LPVOID)(aServerRunning + 0xC), &bInGame, sizeof(bInGame), NULL);
+		MW3.ReadMemory(serverRunning.address + 0xC, serverRunning.value);
 
 		/* Only apply patches if the player is in-game. Singleplayer, co-op, etc. */
-		if (bInGame) {
-			ReadProcessMemory(hProcess, (LPVOID)(aFOV + 0xC), &FOV, sizeof(FOV), NULL);
+		if (serverRunning.value) {
+			MW3.ReadMemory(fov.address + 0xC, fov.value);
 
-			if (FOV != desiredFov) {
-				WriteProcessMemory(hProcess, (LPVOID)(aFOV + 0xC), &desiredFov, sizeof(desiredFov), NULL);
-				WriteProcessMemory(hProcess, (LPVOID)(aFOVScale + 0xC), &desiredFovScale, sizeof(desiredFovScale), NULL);
-				WriteProcessMemory(hProcess, (LPVOID)(aMaxFPS + 0xC), &desiredFPS, sizeof(desiredFPS), NULL);
-
+			if (fov.value != fov.desiredValue) {
+				MW3.WriteMemory(fov.address + 0xC, fov.desiredValue);
+				MW3.WriteMemory(fovScale.address + 0xC, fovScale.desiredValue);
+				MW3.WriteMemory(maxFPS.address + 0xC, maxFPS.desiredValue);
 				std::cout << "Applying patch...\n";
 			}
 		}
 		Sleep(500);
 	}
-
-	CloseHandle(hProcess);
 
 	return 0;
 }

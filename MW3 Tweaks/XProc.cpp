@@ -2,56 +2,50 @@
 
 #include <iostream>
 
-bool GetProcessInfo(const wchar_t* procName, PROCESSENTRY32* pe32)
+XProcess::XProcess(std::wstring procName) : procName(L""), hWnd(NULL), hProc(NULL), pe32({})
 {
-    HANDLE hProc = nullptr;
-    pe32->dwSize = sizeof(PROCESSENTRY32);
-
-    // Create a snapshot of all system processes
-    hProc = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
-    if (hProc == INVALID_HANDLE_VALUE)
-        return false;
-
-    do {
-        if (!_wcsicmp(procName, pe32->szExeFile)) {
-            CloseHandle(hProc);
-            return true;
-        }
-    } while (Process32Next(hProc, pe32));
-
-    CloseHandle(hProc);
-    return false;
-}
-
-DWORD GetProcID(const wchar_t* procName) {
-    HANDLE hProc = nullptr;
-    PROCESSENTRY32 pe32{};
+    this->procName = procName;
     pe32.dwSize = sizeof(PROCESSENTRY32);
-
-    // Create a snapshot of all system processes
-    hProc = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
-    if (hProc == INVALID_HANDLE_VALUE)
-        return 0;
-
-    do {
-        if (!_wcsicmp(procName, pe32.szExeFile)) {
-            CloseHandle(hProc);
-            return pe32.th32ProcessID;
-        }
-    } while (Process32Next(hProc, &pe32));
-
-    CloseHandle(hProc);
-    return 0;
 }
 
-bool GetProcessModules(const DWORD pID, std::vector<MODULEENTRY32>& modules)
+XProcess::~XProcess()
+{
+    if (hProc)
+        CloseHandle(hProc);
+}
+
+bool XProcess::WaitForProcess(double timeoutSec)
+{
+    clock_t c = clock();
+
+    do {
+        if (GetProcessInfo()) {
+            hProc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pe32.th32ProcessID);
+        }
+
+        // Check time
+        if (timeoutSec && double(clock() - c) / CLOCKS_PER_SEC >= timeoutSec) {
+            return false;
+        }
+
+        std::cout << "Waiting...\n";
+    } while (!hProc);
+
+    return true;
+}
+
+bool XProcess::GetModuleList(std::vector<MODULEENTRY32>& modules)
 {
     MODULEENTRY32 me32{};
     me32.dwSize = sizeof(MODULEENTRY32);
 
+    if (!pe32.th32ProcessID) {
+        GetProcessInfo();
+    }
+
     HANDLE hProc = nullptr;
-    hProc = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pID);
-    
+    hProc = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, this->pe32.th32ProcessID);
+
     if (!hProc) {
         return false;
     }
@@ -69,13 +63,57 @@ bool GetProcessModules(const DWORD pID, std::vector<MODULEENTRY32>& modules)
     return true;
 }
 
-HWND GetProcessWindow(const DWORD pID)
+bool XProcess::IsModulePresent(const std::wstring& moduleName)
 {
+    std::vector<MODULEENTRY32> modules;
+
+    if (GetModuleList(modules)) {
+        for (int i = 0; i < modules.size(); i++) {
+            if (!_wcsicmp(modules.at(i).szModule, moduleName.c_str()))
+                return true;
+        }
+    }
+    return false;
+}
+
+bool XProcess::GetProcessInfo()
+{
+    HANDLE hSnap = nullptr;
+
+    // Create a snapshot of all system processes
+    hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
+    if (hSnap == INVALID_HANDLE_VALUE)
+        return false;
+
+    do {
+        if (!_wcsicmp(procName.c_str(), pe32.szExeFile)) {
+            CloseHandle(hSnap);
+            return true;
+        }
+    } while (Process32Next(hSnap, &pe32));
+
+    CloseHandle(hSnap);
+    return false;
+}
+
+bool XProcess::GetProcessWindow() {
     WindowData wData{};
-    wData.pID = pID;
+    
+    // Get the process info if not already
+    if (!this->pe32.th32ProcessID)
+        if (!GetProcessInfo())
+            return false;
+
+    wData.pID = this->pe32.th32ProcessID;
 
     EnumWindows(EnumWindowsCallback, (LPARAM)&wData);
-    return wData.hWnd;
+
+    if (wData.hWnd) {
+        this->hWnd = wData.hWnd;
+        return true;
+    }
+    else
+        return false;
 }
 
 BOOL CALLBACK EnumWindowsCallback(HWND hWnd, LPARAM lParam)
