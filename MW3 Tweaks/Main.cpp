@@ -19,6 +19,7 @@ int main() {
 	// Setup config
 	XFile config("tweak_config.txt");
 	std::map<std::string, std::string> params;
+	std::vector<std::string> lines;
 
 	// If the config file doesn't exist, create it, and write default settings.
 	if (!config.Exists() || config.Empty())
@@ -30,7 +31,6 @@ int main() {
 	std::cout << "Loading config...\n";
 
 	// Read config and parse parameters
-	std::vector<std::string> lines;
 	config.Read(lines);
 
 	// Loading config parameters into a map
@@ -41,6 +41,7 @@ int main() {
 	fovScale.desiredValue = std::stof(params["cg_fovScale"]);
 	maxFPS.desiredValue = std::stoi(params["com_maxfps"]);
 
+	// Open handle to Modern Warfare 3
 	XProcess MW3(L"iw5sp.exe");
 	if (!MW3.WaitForProcess(60.f))
 		std::cout << "Please start Modern Warfare 3 and try again.\n";
