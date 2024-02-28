@@ -8,6 +8,8 @@
 #include "CODVar.h"
 
 int main() {
+	constexpr char oValue = 0xC;
+
 	// Vars
 	CODVar<float> fov = { 0x0A76130, 0, 0.f, 65.f };
 	CODVar<float> fovScale = { 0x0A7601C, 0, 0.f, 1.f };
@@ -30,11 +32,6 @@ int main() {
 	// Read config and parse parameters
 	std::vector<std::string> lines;
 	config.Read(lines);
-
-	if (!lines.size()) {
-		std::cout << "Error loading config...\n";
-		return 1;
-	}
 
 	// Loading config parameters into a map
 	ConvertToMap(lines, params);
@@ -67,16 +64,16 @@ int main() {
 		levels, without constantly writing memory to the game.
 	*/
 	while (true) {
-		MW3.ReadMemory(serverRunning.address + 0xC, serverRunning.value);
+		MW3.ReadMemory(serverRunning.address + oValue, serverRunning.value);
 
 		/* Only apply patches if the player is in-game. Singleplayer, co-op, etc. */
 		if (serverRunning.value) {
-			MW3.ReadMemory(fov.address + 0xC, fov.value);
+			MW3.ReadMemory(fov.address + oValue, fov.value);
 
 			if (fov.value != fov.desiredValue) {
-				MW3.WriteMemory(fov.address + 0xC, fov.desiredValue);
-				MW3.WriteMemory(fovScale.address + 0xC, fovScale.desiredValue);
-				MW3.WriteMemory(maxFPS.address + 0xC, maxFPS.desiredValue);
+				MW3.WriteMemory(fov.address + oValue, fov.desiredValue);
+				MW3.WriteMemory(fovScale.address + oValue, fovScale.desiredValue);
+				MW3.WriteMemory(maxFPS.address + oValue, maxFPS.desiredValue);
 				std::cout << "Applying patch...\n";
 			}
 		}
