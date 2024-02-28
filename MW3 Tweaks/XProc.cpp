@@ -28,7 +28,6 @@ bool XProcess::WaitForProcess(double timeoutSec)
             return false;
         }
 
-        std::cout << "Waiting...\n";
     } while (!hProc);
 
     return true;

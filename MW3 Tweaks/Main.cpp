@@ -42,6 +42,8 @@ int main() {
 	maxFPS.desiredValue = std::stoi(params["com_maxfps"]);
 
 	// Open handle to Modern Warfare 3
+	std::cout << "Please start Modern Warfare 3\n";
+
 	XProcess MW3(L"iw5sp.exe");
 	if (!MW3.WaitForProcess(60.f))
 		std::cout << "Please start Modern Warfare 3 and try again.\n";
