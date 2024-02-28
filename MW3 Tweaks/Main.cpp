@@ -16,36 +16,30 @@ int main() {
 
 	// Setup config
 	XFile config("tweak_config.txt");
+	std::map<std::string, std::string> params;
 
-	if (config.Exists())
+	// If the config file doesn't exist, create it, and write default settings.
+	if (!config.Exists() || config.Empty())
 	{
-		std::cout << "Loading config...\n";
-		if (config.Empty()) {
-			std::cout << "config is empty\n";
-			std::cout << "writing intial template\n";
-			config.Write("cg_fov=90\ncom_maxfps=144\ncg_fovScale=1.0");
-		}
-	}
-	else {
 		std::cout << "Creating config...\n";
 		config.Create();
-		std::cout << "writing intial template\n";
 		config.Write("cg_fov=90\ncom_maxfps=144\ncg_fovScale=1.0");
 	}
+	std::cout << "Loading config...\n";
 
-	// Read file
+	// Read config and parse parameters
 	std::vector<std::string> lines;
 	config.Read(lines);
 
 	if (!lines.size()) {
 		std::cout << "Error loading config...\n";
+		return 1;
 	}
 
-	std::map<std::string, std::string> params;
-	// Get parameters
+	// Loading config parameters into a map
 	ConvertToMap(lines, params);
 
-	// Setup parms
+	// Apply config settings
 	fov.desiredValue = std::stof(params["cg_fov"]);
 	fovScale.desiredValue = std::stof(params["cg_fovScale"]);
 	maxFPS.desiredValue = std::stoi(params["com_maxfps"]);
